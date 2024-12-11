@@ -1,5 +1,5 @@
-import { FAISS } from 'your-faiss-wrapper';
-import { loadDocuments, saveDB, loadEmbeddings } from './utils';
+import { FAISS } from "faiss";
+import { loadDocuments, saveDB, loadEmbeddings } from "./utils";
 
 const embeddingFunction = loadEmbeddings();
 const documents = loadDocuments("data/");
@@ -11,4 +11,3 @@ saveDB(db);
 
 const searchResults = db.similaritySearch("ISO/IEC 27001 standard");
 console.log(searchResults);
-
