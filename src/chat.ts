@@ -8,45 +8,37 @@ import * as readlineSync from "readline-sync";
 
 dotenv.config();
 
-class RetrievalChat {
-  private qa: RetrievalQA;
-  private conversation_history: string;
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
 
-  constructor(apiKey: string) {
-    process.env.OPENAI_API_KEY = apiKey;
+export class Chat {
+  private messages: ChatMessage[] = [];
 
-    // Initialize bot components
-    const embeddingFunction = load_embeddings();
-    const db = load_db(embeddingFunction);
-    this.qa = RetrievalQA.from_llm({
-      llm: new ChatOpenAI({ temperature: 0.1 }),
-      retriever: db.as_retriever({ k: 7 }),
-      return_source_documents: true,
-    });
-
-    this.conversation_history = "";
+  addMessage(message: ChatMessage): void {
+    this.messages.push(message);
   }
 
-  public answerQuestion(question: string): string {
-    this.conversation_history += `User: ${question}\n`;
-
-    const output = this.qa({ query: this.conversation_history });
-
-    const botResponse = output.result.replace("Ella: ", "");
-
-    this.conversation_history += `Ella: ${botResponse}\n`;
-
-    return botResponse;
+  clear(): void {
+    this.messages = [];
   }
 
-  public welcome(): void {
-    console.log("Ella: Welcome! What are we exploring today?");
+  getLastMessage(): ChatMessage | null {
+    if (this.messages.length === 0) {
+      return null;
+    }
+    return this.messages[this.messages.length - 1];
+  }
+
+  getHistory(): ChatMessage[] {
+    return [...this.messages];
   }
 }
 
 const apiKey = constants.API_KEY;
 
-const qa = new RetrievalChat(apiKey);
+const qa = new Chat(apiKey);
 
 qa.welcome();
 

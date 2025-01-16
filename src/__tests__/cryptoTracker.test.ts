@@ -1,5 +1,6 @@
 import { describe, expect, test, jest } from "@jest/globals";
 import { CryptoTracker } from "../cryptoTracker";
+import { AlertNotifier } from "../notifications/alertNotifier";
 
 describe("CryptoTracker", () => {
   let cryptoTracker: CryptoTracker;
@@ -88,5 +89,44 @@ describe("CryptoTracker", () => {
 
     expect(cryptoTracker.isPriceAlertTriggered("BTC", 65000)).toBe(true);
     expect(cryptoTracker.isPriceAlertTriggered("BTC", 55000)).toBe(false);
+  });
+});
+
+describe("CryptoTracker notifications", () => {
+  let cryptoTracker: CryptoTracker;
+  let mockNotifier: jest.Mocked<AlertNotifier>;
+
+  beforeEach(() => {
+    cryptoTracker = new CryptoTracker();
+    mockNotifier = {
+      notify: jest.fn().mockResolvedValue(undefined),
+    };
+    cryptoTracker.addNotifier(mockNotifier);
+  });
+
+  test("should notify when price alert is triggered", async () => {
+    const mockPrices = { BTC: 65000 };
+    jest.spyOn(cryptoTracker, "fetchBulkPrices").mockResolvedValue(mockPrices);
+
+    cryptoTracker.addCrypto("BTC");
+    cryptoTracker.setPriceAlert("BTC", 60000, "above");
+
+    await cryptoTracker.checkAlerts();
+
+    expect(mockNotifier.notify).toHaveBeenCalledWith(
+      expect.stringContaining("BTC price is above 60000")
+    );
+  });
+
+  test("should not notify when price alert is not triggered", async () => {
+    const mockPrices = { BTC: 55000 };
+    jest.spyOn(cryptoTracker, "fetchBulkPrices").mockResolvedValue(mockPrices);
+
+    cryptoTracker.addCrypto("BTC");
+    cryptoTracker.setPriceAlert("BTC", 60000, "above");
+
+    await cryptoTracker.checkAlerts();
+
+    expect(mockNotifier.notify).not.toHaveBeenCalled();
   });
 });
