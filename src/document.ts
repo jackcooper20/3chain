@@ -1,10 +1,10 @@
-import { HuggingFaceEmbeddings } from "langchain/embeddings/huggingface";
 import { loadDocuments, loadDb, saveDb, loadEmbeddings } from "./utils";
 
 async function main() {
-  const db = loadDb({ embeddingFunction: loadEmbeddings() });
+  const embeddings = loadEmbeddings();
+  const db = loadDb({ embeddingFunction: embeddings });
   const newDocuments = loadDocuments("new_document/");
-  db.addDocuments(newDocuments);
+  await db.addDocuments(newDocuments);
   saveDb(db);
 }
 
