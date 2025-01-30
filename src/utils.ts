@@ -8,6 +8,8 @@ import { PyPDFLoader } from "langchain/document_loaders";
 import { Document } from "@langchain/core/documents";
 import { MemoryVectorStore } from "@langchain/community/vectorstores/memory";
 import * as path from "path";
+import { OpenAIEmbeddings } from "langchain/embeddings/openai";
+import { HNSWLib } from "langchain/vectorstores/hnswlib";
 
 interface Config {
   embeddings: {
@@ -60,50 +62,36 @@ export function loadDb({
 }: {
   embeddingFunction: HuggingFaceEmbeddings;
 }) {
-  try {
-    // Initialize a new vector store with the embedding function
-    return new MemoryVectorStore(embeddingFunction);
-  } catch (error) {
-    console.error("Error loading database:", error);
-    throw error;
+  // Load or create a new vector store
+  if (fs.existsSync("./vectorstore")) {
+    return HNSWLib.load("./vectorstore", embeddingFunction);
   }
+  return new HNSWLib(embeddingFunction, {
+    space: "cosine",
+    numDimensions: 1536, // OpenAI embeddings dimensions
+  });
 }
 
 export function saveDb(db: MemoryVectorStore) {
-  try {
-    // Here you might want to implement persistence logic
-    // For now, this is a placeholder
-    console.log("Database saved successfully");
-  } catch (error) {
-    console.error("Error saving database:", error);
-    throw error;
-  }
+  db.save("./vectorstore");
 }
 
 export function loadDocuments(directoryPath: string): Document[] {
   const documents: Document[] = [];
+  const files = fs.readdirSync(directoryPath);
 
-  try {
-    const files = fs.readdirSync(directoryPath);
+  for (const file of files) {
+    const filePath = path.join(directoryPath, file);
+    const content = fs.readFileSync(filePath, "utf-8");
 
-    for (const file of files) {
-      const filePath = path.join(directoryPath, file);
-      const content = fs.readFileSync(filePath, "utf-8");
+    const splitter = new RecursiveCharacterTextSplitter({
+      chunkSize: 1000,
+      chunkOverlap: 200,
+    });
 
-      documents.push(
-        new Document({
-          pageContent: content,
-          metadata: {
-            source: filePath,
-            filename: file,
-          },
-        })
-      );
-    }
-
-    return documents;
-  } catch (error) {
-    console.error("Error loading documents:", error);
-    throw error;
+    const docs = splitter.createDocuments([content], [{ source: filePath }]);
+    documents.push(...docs);
   }
+
+  return documents;
 }
