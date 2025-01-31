@@ -77,6 +77,40 @@ export class CryptoTracker {
     });
   }
 
+  removePriceAlert(
+    symbol: string,
+    price: number,
+    condition: AlertCondition
+  ): void {
+    const alerts = this.priceAlerts.get(symbol);
+    if (!alerts) return;
+
+    const filteredAlerts = alerts.filter(
+      (alert) => !(alert.price === price && alert.condition === condition)
+    );
+    this.priceAlerts.set(symbol, filteredAlerts);
+  }
+
+  getPriceAlertsByCondition(
+    symbol: string,
+    condition: AlertCondition
+  ): PriceAlert[] {
+    const alerts = this.getPriceAlerts(symbol);
+    return alerts.filter((alert) => alert.condition === condition);
+  }
+
+  clearAllAlerts(symbol: string): void {
+    this.priceAlerts.delete(symbol);
+  }
+
+  async calculateAveragePrice(symbol: string, period: string): Promise<number> {
+    const history = await this.getPriceHistory(symbol, period);
+    if (history.length === 0) return 0;
+
+    const sum = history.reduce((acc, entry) => acc + entry.price, 0);
+    return sum / history.length;
+  }
+
   // These methods would be implemented to call actual APIs
   protected async fetchPrice(symbol: string): Promise<number> {
     throw new Error("Not implemented");
